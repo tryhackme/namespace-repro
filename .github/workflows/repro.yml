@@ -1,0 +1,55 @@
+name: Namespace Repro
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  job:
+    runs-on:
+      - nscloud-ubuntu-20.04-amd64-4x8-with-cache
+      - nscloud-cache-size-20gb
+      - nscloud-cache-tag-namespace-repro
+      - nscloud-exp-container-image-cache
+      - nscloud-exp-runner-tool-cache-5gb
+      - nscloud-git-mirror-5gb
+      - nscloud-in-runner-builder
+    env:
+      PUPPETEER_CACHE_DIR: ${{ github.workspace }}/node_modules/.cache/puppeteer
+
+    steps:
+      - name: Checkout
+        uses: namespacelabs/nscloud-checkout-action@v7 # Uses namespace cache
+
+      - name: Setup PNPM
+        uses: pnpm/action-setup@v4 # Version is inferred from package.json packageManager field
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Setup Namespace Cache
+        uses: namespacelabs/nscloud-cache-action@v1
+        with:
+          cache: pnpm
+
+      - name: Debug weird cache issues
+        run: |
+          ls -lah node_modules || true
+          ls -lah node_modules/.cache || true
+          ls -lah node_modules/.cache/puppeteer || true
+          ls -lah node_modules/.cache/testing123 || true
+          cat node_modules/.cache/testing123/testing123 || true
+
+      - name: Install dependencies
+        run: |
+          pnpm install --frozen-lockfile
+
+      - name: Debug weird cache issues 2
+        run: |
+          ls -lah node_modules || true
+          ls -lah node_modules/.cache || true
+          ls -lah node_modules/.cache/puppeteer || true
+          mkdir -p node_modules/.cache/testing123
+          echo $(date +%s) > node_modules/.cache/testing123/testing123
